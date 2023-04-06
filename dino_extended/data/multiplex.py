@@ -23,6 +23,5 @@ class TileTransform(object):
         crop = TF.crop(he, h, w, self.size[-2] * 2, self.size[-1] * 2)
         crop = TF.rotate(crop, deg)
         crop = TF.center_crop(crop, self.size)
-
-
+        
         return crop
