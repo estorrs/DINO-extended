@@ -40,6 +40,7 @@ setup(
         'pytorch-lightning',
         'timm',
         'einops',
+        'kmeans-pytorch',
     ],
     include_package_data=True,
 

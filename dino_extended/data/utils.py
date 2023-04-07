@@ -53,7 +53,9 @@ def get_ome_tiff_channels(fp):
     return [c.name for c in im.pixels.channels]
 
 
-def make_pseudo(channel_to_img, cmap=None, contrast_pct=20.):
+def make_pseudo(channel_to_img, cmap=None, contrast_pct=90.):
+    if not isinstance(channel_to_img, dict):
+        channel_to_img = {i:x for i, x in enumerate(channel_to_img)}
     cmap = sns.color_palette('tab10') if cmap is None else cmap
 
     new = np.zeros_like(next(iter(channel_to_img.values())))
@@ -76,6 +78,9 @@ def make_pseudo(channel_to_img, cmap=None, contrast_pct=20.):
     stack = np.mean(np.asarray(img_stack), axis=0)
     stack -= stack.min()
     stack /= stack.max()
+
+    if np.isnan(stack.max()):
+        return np.zeros_like(stack)
     return stack
 
 

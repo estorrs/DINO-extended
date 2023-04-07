@@ -7,10 +7,11 @@ import random
 from functools import wraps, partial
 
 import torch
-from torch import nn
 import torch.nn.functional as F
-
+from torch import nn
 from torchvision import transforms as T
+
+from dino_extended.data.multiplex import MultichannelAug
 
 def default_aug( means=(0.771, 0.651, 0.752), stds=(0.229, 0.288, 0.224)):
     return torch.nn.Sequential(
@@ -20,6 +21,7 @@ def default_aug( means=(0.771, 0.651, 0.752), stds=(0.229, 0.288, 0.224)):
         ),
         T.RandomGrayscale(p=0.2),
         T.RandomHorizontalFlip(),
+        T.RandomVerticalFlip(),
         RandomApply(
             T.GaussianBlur((3, 3), (1.0, 2.0)),
             p = 0.2
@@ -207,6 +209,7 @@ class Dino(nn.Module):
         self,
         net,
         image_size,
+        is_multichannel = False,
         hidden_layer = -2,
         projection_hidden_size = 256,
         num_classes_K = 65336,
@@ -218,13 +221,23 @@ class Dino(nn.Module):
         moving_average_decay = 0.9,
         center_moving_average_decay = 0.9,
         augment_fn = None,
-        augment_fn2 = None
+        augment_fn2 = None,
+        means=None,
+        stds=None,
+        n_image_channels=None,
     ):
         super().__init__()
         self.net = net
+        self.is_multichannel = is_multichannel
 
-        # default BYOL augmentation
-        DEFAULT_AUG = default_aug()
+        if self.is_multichannel:
+            if means is None or stds is None or n_image_channels is None:
+                raise RuntimeError(f'means, stds, and n_image_channels must be provided when is_multichannel is True.')
+            DEFAULT_AUG = MultichannelAug(means, stds)
+        else:
+            DEFAULT_AUG = default_aug() # default BYOL augmentation
+            n_image_channels = 3
+
         self.augment1 = default(augment_fn, DEFAULT_AUG)
         self.augment2 = default(augment_fn2, DEFAULT_AUG)
 
@@ -251,7 +264,7 @@ class Dino(nn.Module):
         self.to(device)
 
         # send a mock image tensor to instantiate singleton parameters
-        self.forward(torch.randn(2, 3, image_size, image_size, device=device))
+        self.forward(torch.randn(2, n_image_channels, image_size, image_size, device=device))
 
     @singleton('teacher_encoder')
     def _get_teacher_encoder(self):
