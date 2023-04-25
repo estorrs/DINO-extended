@@ -22,7 +22,7 @@ class TileTransform(object):
         crop = TF.center_crop(crop, self.size)
 
         return crop
-    
+
 
 class TileDataset(Dataset):
     """Registration Dataset"""
